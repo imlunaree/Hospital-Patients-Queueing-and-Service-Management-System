@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
-import { collection, onSnapshot, query, where, orderBy } from 'firebase/firestore';
+import { collection, onSnapshot, query, where, orderBy, getDocs } from 'firebase/firestore';
 import { db } from "../firebase/firebase";
 import { useNavigate } from "react-router-dom";
 import Spinner from "../components/Spinner";
 
-import { getAuth } from "firebase/auth";
+import { getAuth, onAuthStateChanged } from "firebase/auth";
 
 function AppointmentList() {
 
@@ -17,14 +17,19 @@ function AppointmentList() {
     const [searchTerm, setSearchTerm] = useState('');
 
     useEffect(() => {
-     
+
+      const fetchData = async (e) => {
+        const q = query(
+        collection(db, "users"), where("email", "==", e));
+        const querySnapshot = await getDocs(q);
+        const doc = querySnapshot.docs[0];
+
         if (searchTerm){
-  
           const q = searchTerm
             ? query(
                 collection(db, 'queue'),
-                where('patientID', "in", [auth.currentUser.uid]),
-                where('queueStatus', "in", ["Pending", "Set"]),
+                where('doctorName', "==", doc.data().name),
+                where('queueStatus', "in", ["Pending", "Set", "Checked In"]),
                 where('queueNumber', '>=', searchTerm),
                 where('queueNumber', '<=', searchTerm + '\uf8ff')
               )
@@ -43,11 +48,11 @@ function AppointmentList() {
         
         } else {
   
-          const q = query(
+        const q = query(
             collection(db, 'queue'),
-            where('patientID', "in", [auth.currentUser.uid]),
+            where('doctorName', "==", doc.data().name),
             where('queueStatus', "in", ["Pending", "Set", "Checked In"])
-            )
+        )
     
         const unsubscribe = onSnapshot(q, (snapshot) => {
           const booksData = snapshot.docs.map((doc) => ({
@@ -59,6 +64,20 @@ function AppointmentList() {
         });
           return unsubscribe;
         }
+
+      };
+
+
+  
+      const auth = getAuth()
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                fetchData(user.email);
+            }
+
+          })
+    
+       
       }, [searchTerm]);
   
     const handleSearch = (event) => {
