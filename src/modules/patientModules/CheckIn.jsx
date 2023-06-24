@@ -16,6 +16,8 @@ import CheckInList from '../../functions/CheckInList';
 
 import { toast } from "react-toastify";
 
+import { UpdateAverageWaitTime } from '../../functions/UpdateAverageWaitTime.jsx';
+
 export default function CheckIn() {
 
 
@@ -31,8 +33,11 @@ export default function CheckIn() {
     const [loading, setLoading] = useState(false);
     const [checkedIn, setCheckedIn] = useState(false);
     const [userAppointmentID, setUserAppointmentID] = useState("");
+    const [userAppointmentQueueNumber, setUserAppointmentQueueNumber] = useState("")
 
     const [isCheckInListOpen, setIsCheckInListOpen] = useState(false);
+
+    const avg = UpdateAverageWaitTime()
 
     useEffect(() => {
         setLoading(true)
@@ -44,13 +49,13 @@ export default function CheckIn() {
         const data1 = docSnap.data();
         setCheckedIn(data1.isCheckedIn)
         setUserAppointmentID(data1.appointmentID)
+        setUserAppointmentQueueNumber(data1.appointmentQueueNumber)
 
         const docRef = doc(db, 'globalVariables', 'aplmxmAVlIdS8vAVFOut');
         const snapshot = await getDoc(docRef);
 
         const data = snapshot.data();
         const retrievedValue = data.currentQueueNumber;
-        console.log(retrievedValue)
         setValue(data.currentQueueNumber)
 
         const q = query(
@@ -153,7 +158,8 @@ export default function CheckIn() {
         
 
         <div class="flex flex-grow space-x-5 mb-5 items-center">
-            <p class="m-auto">Estimated Wait Time until Next Appointment: 10:00 mins</p>
+        <p className="m-auto">Estimated Wait Time until Next Appointment: <span className="font-semibold text-xl">{avg}</span> minutes</p>
+
         </div>
 
         {empty && (<div className="grid grid-cols-1 gap-4">
@@ -191,7 +197,8 @@ export default function CheckIn() {
       </div>)}
 
       {checkedIn &&(<div class="flex flex-grow space-x-5 mb-5 items-center">
-            <p class="m-auto">Estimated Wait Time until you are Served: 10:00 mins</p>
+      <p className="m-auto">Estimated Wait Time until Your Appointment: <span className="font-semibold text-xl">{((userAppointmentQueueNumber - value) * avg)}</span> minutes</p>
+
         </div>)}
 
       {!checkedIn && (<div class="flex flex-grow space-x-5 mt-2">
